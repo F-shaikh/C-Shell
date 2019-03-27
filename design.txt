@@ -1,0 +1,215 @@
+Design Document
+Faisal Shaikh
+CruzID: fshaikh1
+CMPS 111, Fall 2018
+
+1. Goal
+    The goal of this program is to implement our own simple shell that can execute other programs using
+    system calls.
+
+2. Assumptions
+    I am assuming that all special characters will require some set of unique features, therefore I should create
+    seperate code segments for the standard commands versus the special character commands. I will try to read
+    through the command line argument to search for special characters before acting on the input command.
+    I am also assuming that our commands should work just as the regular freeBSD shell would.
+
+3. Design
+    The approach I am taking involves searching for certain commands and special characters before acting 
+    upon them. The simplest case is if the user types "exit", then the program will exit. The CD command will
+    work similiarily, as it will only have zero or one arguments. Otherwise I will search for special characters
+    using a for loop to read through the command line argument in addition to using a few "if else" statements
+    to act appropriatly upon each special character. After searching, I can use execvp to execute the process
+    that was entered on the command line. 
+
+4. Pseudocode
+    declare extern char ** get_args();
+    procedure ARGSHELL
+    declare char ** args
+        loop
+            args = get_args()
+            loop
+                print command line prompt
+            end loop
+
+            // Exit Command
+            if arg[0] is "exit"
+                exit()
+            end if
+
+            // CD Command
+            else if arg[0] is "cd"
+                getcwd(*buf,size)
+                if args[1] = NULL
+                    chdir(path)
+                    getcwd(*buf,size)
+                end if
+                else
+                    chdir(args[1])
+                    getcwd(*buf,size)
+                end else
+                print current directory
+            end else if
+
+            else
+                declare pid_t processID
+                declare int status
+                if processID = 0
+                    loop
+                        // Special Character "<"
+                        if args[i] is "<"
+                            if args[i+1] does not equal NULL
+                                filedesc <- open(args[i+1],read)
+                                if dup2(filedesc,stdin) < 0
+                                    error
+                                end if
+                                close(filedesc)
+                                args[i] = NULL
+                                args[i+1] = NULL
+                            end if
+                        end if
+
+                        // Special Character ">"
+                        else if args[i] is ">"
+                            if args[i+1] does not equal NULL
+                                filedesc <- open(args[i+1],create,read and write, trunc)
+                                if dup2(filedesc,stdout) < 0
+                                    error
+                                end if
+                                close(filedesc)
+                                args[i] = NULL
+                                args[i+1] = NULL
+                            end if
+                        end else if
+
+                        // Special Character ">>"
+                        else if args[i] is ">>"
+                            if args[i+1] does not equal NULL
+                                filedesc <- open(args[i+1],create,read and write, append)
+                                if dup2(filedesc,stdout) < 0
+                                    error
+                                end if
+                                close(filedesc)
+                                args[i] = NULL
+                                args[i+1] = NULL
+                            end if
+                        end else if
+
+                        // Special Character "|"
+                        else if args[i] is "|"
+                            declare int pipedesc[2]
+                            declare int processID
+                            declare char ** copyParentArgs = args
+                            declare char ** coprChildArgs = args
+                            declare int status
+                            loop
+                                copyParentArgs[j] = args[j]
+                            end loop
+                            loop
+                                copyChildArgs[k] = args[k]
+                            end loop
+                            pipe(pipedesc)
+                            processID = fork()
+                            if processID = 0
+                                dup2(pipedesc[1],stdout)
+                                close(pipedesc[0])
+                                args[i] = NULL
+                                execvp(args[0], copyParentArgs)
+                            end if
+                            else
+                                wait
+                                dup2(pipeDesc[0], stdin)
+							    close(pipeDesc[1])
+							    args[i] = NULL
+							    args[i-1] = NULL
+							    execvp(args[i+1], copyChildArgs)
+                            end else
+                        end else if
+
+                        // Special Character ">&"
+                        else if args[i] is ">&"
+                            if args[i+1] doest not equal NULL
+                                filedesc <- open(args[i+1],create,read and write, trunc)
+                                if (dup2(filedesc,stdout) < 0) and (dup2(filedesc,stderror) < 0) 
+                                    error
+                                end if
+                                close(filedesc)
+                                args[i] = NULL
+                                args[i+1] = NULL
+                            end if
+                        end else if
+
+                        // Special Character ">>&"
+                        else if args[i] is ">>&"
+                            if args[i+1] does not equal NULL
+                                filedesc <- open(args[i+1],create,read and write,append)
+                                if (dup2(filedesc,stdout) < 0) and (dup2(filedesc,stderror) < 0)
+                                    error
+                                end if
+                                close(filedesc)
+                                args[i] = NULL
+                                args[i+1] = NULL
+                            end if
+                        end else if
+
+                        // Special Character "|&"
+                        else if args[i] is "|&"
+                            declare int pipedesc[2]
+                            declare int processID
+                            declare char ** copyParentArgs = args
+                            declare char ** coprChildArgs = args
+                            declare int status
+                            loop
+                                copyParentArgs[j] = args[j]
+                            end loop
+                            loop
+                                copyChildArgs[k] = args[k]
+                            end loop
+                            pipe(pipedesc)
+                            processID = fork()
+                            if processID = 0
+                                dup2(pipedesc[1],stdout)
+                                dup2(piedesc[1],stderror)
+                                close(pipedesc[0])
+                                args[i] = NULL
+                                execvp(args[0], copyParentArgs)
+                            end if
+                            else
+                                wait
+                                dup2(pipeDesc[0], stdin)
+							    close(pipeDesc[1])
+							    args[i] = NULL
+							    args[i-1] = NULL
+							    execvp(args[i+1], copyChildArgs)
+                            end else
+                        end else if
+
+                        // Special Character ";"
+                        else if args[i] is ";"
+                            declare int processID
+                            declare char ** copyParentArgs
+                            declare char ** copyChildArgs
+                            loop
+                                copyParentArgs = args[j]
+                            end loop
+                            loop
+                                copyChildArgs[k] = args[k]
+                            end loop
+                            if processID = 0
+                                args[i] = NULL
+                                execvp(copyParentArgs[0],copyParentArgs)
+                                args[i-1] = NULL
+                                wait
+                                execvp(copyChildArgs[0],copyChildArgs)
+                                end if
+                        end else if
+                    end loop
+                if execvp(args[0],args) < 0
+                    error
+                end if
+            end else if
+            else 
+                wait
+            end else
+        end else
+    end loop
+end ARGSHELL
